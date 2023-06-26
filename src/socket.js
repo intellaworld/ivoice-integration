@@ -1,7 +1,7 @@
 import io from "socket.io-client";
 
 export const getSocket = () => {
-  return io("ws://20.171.100.143:7000", {
+  return io("ws://192.168.1.115:8000", {
     path: "/client-side-socket",
     transports: ["websocket"],
     auth: {
@@ -14,5 +14,3 @@ export const getSocket = () => {
 export const closeSocket = (socket) => {
   socket.disconnect();
 };
-
-// export default socket;

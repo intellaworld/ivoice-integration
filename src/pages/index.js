@@ -1,181 +1,235 @@
-import styles from "../styles/Home.module.css";
-import { closeSocket, getSocket } from "../socket";
+import { AudioOutlined, UploadOutlined } from "@ant-design/icons";
+import { Button, Layout, Space, Typography, Upload, theme } from "antd";
 import toWav from "audiobuffer-to-wav";
+import Head from "next/head";
+import React from "react";
+import { getSocket } from "../socket";
+import { convertBlobToBase64, splitAudioBuffer } from "../utils/general";
 
-import { useRouter } from "next/router";
-import { useState } from "react";
-
-function splitAudioBuffer(audioBuffer, segmentDuration) {
-  const audioContext = new AudioContext();
-  const sampleRate = audioBuffer.sampleRate;
-  const numChannels = audioBuffer.numberOfChannels;
-  const segmentSize = segmentDuration * sampleRate;
-  const numSegments = Math.ceil(audioBuffer.duration / segmentDuration);
-  const segments = [];
-  for (let i = 0; i < numSegments; i++) {
-    const start = i * segmentSize;
-    const end = Math.min(start + segmentSize, audioBuffer.length);
-    const segment = audioContext.createBuffer(
-      numChannels,
-      segmentSize,
-      sampleRate
-    );
-    for (let j = 0; j < numChannels; j++) {
-      const channelData = audioBuffer.getChannelData(j);
-      const segmentChannelData = segment.getChannelData(j);
-      segmentChannelData.set(channelData.subarray(start, end));
-    }
-    segments.push(segment);
-  }
-  return segments;
-}
+const { Header, Content, Footer } = Layout;
 
 export default function Home() {
   let socket = null;
-  const henksh = async () => {
+
+  const {
+    token: { colorBgContainer, colorTextDisabled, colorTextLightSolid },
+  } = theme.useToken();
+
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [isStreaming, setIsStreaming] = React.useState(false);
+
+  const fileUploadProps = {
+    onRemove: (file) => {
+      setSelectedFile(null);
+    },
+    beforeUpload: (file) => {
+      setSelectedFile(file);
+      return false;
+    },
+    selectedFile,
+  };
+
+  const streamFile = async () => {
     try {
-      // const stream = await navigator.mediaDevices.getUserMedia({
-      //   audio: { sampleRate: 44100, channelCount: 1 },
-      // });
-
-      // const mediaRecorder = new MediaRecorder(stream);
-      // const chunks = [];
-
-      // Handle data available
-      // mediaRecorder.addEventListener("dataavailable", (event) => {
-      //   if (event.data.size > 0) {
-      //     chunks.push(event.data);
-      //   }
-      // });
-
-      // Handle stop recording
-      // mediaRecorder.addEventListener("stop", async () => {
-      //   // Convert chunks to a Blob
-      //   const blob = new Blob(chunks);
-
-      //   // Convert the audio data to WAV format
-      //   const audioData = await blob.arrayBuffer();
-      //   const audioContext = new AudioContext();
-      //   const audioBuffer = await audioContext.decodeAudioData(audioData);
-      //   const wavData = toWav(audioBuffer);
-
-      //   const wavBlob = new Blob([wavData], { type: "audio/wav" });
-      //   const base64data = await convertBlobToBase64(wavBlob);
-
-      //   var json = JSON.stringify({
-      //     data: base64data,
-      //     email: "youssef@gmail.com",
-      //   });
-      //   if (socket) {
-      //     socket.emit("message", json);
-      //   }
-
-      //   const audio = new Audio();
-      //   audio.src = "data:audio/wav;base64," + base64data;
-      //   console.log("playing");
-      //   audio.play();
-      // });
-
-      // Start recording for 2.5 seconds
-      // mediaRecorder.start();
-      // setTimeout(() => {
-      //   mediaRecorder.stop();
-      // }, 2500);
-
+      const reader = new FileReader();
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      var audioCtx = new AudioContext();
-      fetch("PP14897746844942023061511081046-WAV.wav")
-        .then((response) => response.arrayBuffer())
-        .then((buffer) => {
-          return audioCtx.decodeAudioData(buffer);
-        })
-        .then((buffer) => {
-          Promise.all(
-            splitAudioBuffer(buffer, 2).map(async (b) => {
-              const base64data = await convertBlobToBase64(
-                new Blob([toWav(b)], { type: "audio/wav" })
-              );
-              // return base64data;
-              return JSON.stringify({
-                data: base64data,
-                email: "youssef@gmail.com",
-              });
-            })
-          ).then((chunks) => {
-            console.log({ chunks });
+      const audioCtx = new AudioContext();
 
-            let i = 0;
-            setInterval(() => {
-              socket.emit("message", chunks[i]);
-              i++;
-            }, 2000);
-          });
+      reader.onload = function (event) {
+        const arrayBuffer = event.target.result;
+        const audioBuffer = audioCtx.decodeAudioData(arrayBuffer);
+
+        Promise.all(
+          splitAudioBuffer(audioBuffer, 2).map(async (b) => {
+            const base64data = await convertBlobToBase64(
+              new Blob([toWav(b)], { type: "audio/wav" })
+            );
+            return JSON.stringify({
+              data: base64data,
+              email: "youssef@gmail.com",
+            });
+          })
+        ).then((chunks) => {
+          let i = 0;
+          setInterval(() => {
+            socket.emit("message", chunks[i]);
+            i++;
+          }, 2000);
         });
+      };
+
+      reader.readAsArrayBuffer(selectedFile);
     } catch (error) {
       console.error("Error", error);
     }
   };
 
-  const convertBlobToBase64 = (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = () => {
-        const base64data = reader.result.split(",")[1];
-        resolve(base64data);
-      };
-      reader.onerror = (error) => reject(error);
-    });
+  const recordAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { sampleRate: 44100, channelCount: 1 },
+      });
+
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      //   Handle data available
+      mediaRecorder.addEventListener("dataavailable", (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      });
+
+      //   Handle stop recording
+      mediaRecorder.addEventListener("stop", async () => {
+        // Convert chunks to a Blob
+        const blob = new Blob(chunks);
+
+        // Convert the audio data to WAV format
+        const audioData = await blob.arrayBuffer();
+        const audioContext = new AudioContext();
+        const audioBuffer = await audioContext.decodeAudioData(audioData);
+        const wavData = toWav(audioBuffer);
+
+        const wavBlob = new Blob([wavData], { type: "audio/wav" });
+        const base64data = await convertBlobToBase64(wavBlob);
+
+        const json = JSON.stringify({
+          data: base64data,
+          email: "youssef@gmail.com",
+        });
+
+        if (socket) {
+          socket.emit("message", json);
+        }
+      });
+
+      //   Start recording for 2.5 seconds
+      mediaRecorder.start();
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+      }, 2500);
+    } catch (error) {
+      console.error("Error", error);
+    }
   };
 
-  const handleDisconnect = () => {
-    console.log("handledisconnect");
-    const email = "youssef@gmail.com";
-    const json = JSON.stringify({ email });
+  const startCall = (cb) => {
+    if (!socket) {
+      let _socket = getSocket();
+      socket = _socket;
+
+      socket.on("connect", () => {
+        console.log("Connected to the backend socket");
+      });
+
+      socket.on("message", (message) => {
+        console.log(message);
+      });
+
+      socket.on("done", () => {
+        console.log("done");
+        socket.disconnect();
+      });
+
+      socket.on("disconnect", disconnect);
+    }
+
+    cb();
+  };
+
+  const disconnect = () => {
+    const json = JSON.stringify({ email: "youssef@gmail.com" });
     if (socket) {
+      console.log("disconnect");
       socket.emit("end-call", json);
-      console.log("end-call emitted");
     }
   };
 
   return (
-    <div className={styles.container}>
-      <button
-        onClick={() => {
-          let _socket = getSocket();
-          socket = _socket;
-
-          socket.on("connect", () => {
-            console.log("Connected to the backend socket");
-          });
-
-          socket.on("message", (message) => {
-            console.log(message);
-          });
-
-          socket.on("done", () => {
-            console.log("done");
-            socket.disconnect();
-          });
-
-          socket.on("disconnect", handleDisconnect);
-
-          henksh();
-          // const id = setInterval(() => {
-          //   henksh();
-          // }, 2500);
-        }}
-      >
-        Start call
-      </button>
-      <button
-        onClick={() => {
-          console.log("disconnect");
-          handleDisconnect();
-        }}
-      >
-        End call
-      </button>
-    </div>
+    <>
+      <Head>
+        <title>Realtime Transcription</title>
+      </Head>
+      <Layout>
+        <Header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1,
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Typography.Text
+            style={{
+              color: colorTextLightSolid,
+            }}
+          >
+            Realtime Transcription
+          </Typography.Text>
+        </Header>
+        <Content
+          className="site-layout"
+          style={{ padding: "25px 50px", height: "calc(100vh - 132px)" }}
+        >
+          <Space direction="vertical">
+            <Button
+              type="primary"
+              icon={<AudioOutlined />}
+              disabled={selectedFile}
+              onClick={() => startCall(recordAudio)}
+            >
+              Start Recording
+            </Button>
+            <Space>
+              <Typography.Text type="secondary" style={{ userSelect: "none" }}>
+                Or
+              </Typography.Text>
+            </Space>
+            <Upload
+              {...fileUploadProps}
+              maxCount={1}
+              style={{
+                "& .ant-upload-list.ant-upload-list-text": {
+                  position: "absolute",
+                },
+              }}
+            >
+              <Space>
+                <Button icon={<UploadOutlined />}>Select File</Button>
+              </Space>
+            </Upload>
+            {selectedFile && (
+              <Button
+                type="primary"
+                disabled={!selectedFile}
+                loading={isStreaming}
+                onClick={() => startCall(streamFile)}
+              >
+                {isStreaming ? "Sending" : "Send"}
+              </Button>
+            )}
+          </Space>
+          <div
+            style={{
+              marginTop: 24,
+              padding: 24,
+              minHeight: 380,
+              background: colorBgContainer,
+              userSelect: "none",
+            }}
+          >
+            <span style={{ color: colorTextDisabled }}>
+              Start recording or send file for transcription to start appearing
+              here
+            </span>
+          </div>
+        </Content>
+        <Footer style={{ textAlign: "center" }}>intella</Footer>
+      </Layout>
+    </>
   );
 }
