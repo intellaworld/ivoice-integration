@@ -1,4 +1,8 @@
-import { AudioOutlined, UploadOutlined } from "@ant-design/icons";
+import {
+  AudioOutlined,
+  CheckSquareFilled,
+  UploadOutlined,
+} from "@ant-design/icons";
 import { Button, Layout, Space, Typography, Upload, theme } from "antd";
 import toWav from "audiobuffer-to-wav";
 import Head from "next/head";
@@ -15,8 +19,11 @@ export default function Home() {
     token: { colorBgContainer, colorTextDisabled, colorTextLightSolid },
   } = theme.useToken();
 
+  const [recordTimerId, setRecordTimerId] = React.useState(null);
   const [selectedFile, setSelectedFile] = React.useState(null);
+  const [isAudioRecording, setIsAudioRecording] = React.useState(false);
   const [isStreaming, setIsStreaming] = React.useState(false);
+  const [transcriptionText, setTranscriptionText] = React.useState("");
 
   const fileUploadProps = {
     onRemove: (file) => {
@@ -66,6 +73,8 @@ export default function Home() {
 
   const recordAudio = async () => {
     try {
+      setIsAudioRecording(true);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 44100, channelCount: 1 },
       });
@@ -107,11 +116,22 @@ export default function Home() {
       //   Start recording for 2.5 seconds
       mediaRecorder.start();
 
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         mediaRecorder.stop();
+        recordAudio();
       }, 2500);
+
+      setRecordTimerId(timerId);
     } catch (error) {
       console.error("Error", error);
+      setIsAudioRecording(false);
+    }
+  };
+
+  const stopAudioRecord = () => {
+    if (recordTimerId) {
+      clearTimeout(recordTimerId);
+      setIsAudioRecording(false);
     }
   };
 
@@ -120,12 +140,16 @@ export default function Home() {
       let _socket = getSocket();
       socket = _socket;
 
+      let messages = "";
+
       socket.on("connect", () => {
         console.log("Connected to the backend socket");
       });
 
       socket.on("message", (message) => {
-        console.log(message);
+        // console.log("message", message);
+        messages += message;
+        setTranscriptionText(messages);
       });
 
       socket.on("done", () => {
@@ -176,14 +200,26 @@ export default function Home() {
           style={{ padding: "25px 50px", height: "calc(100vh - 132px)" }}
         >
           <Space direction="vertical">
-            <Button
-              type="primary"
-              icon={<AudioOutlined />}
-              disabled={selectedFile}
-              onClick={() => startCall(recordAudio)}
-            >
-              Start Recording
-            </Button>
+            {isAudioRecording ? (
+              <Button
+                danger
+                type="primary"
+                icon={<CheckSquareFilled />}
+                disabled={selectedFile}
+                onClick={stopAudioRecord}
+              >
+                Stop Recording
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                icon={<AudioOutlined />}
+                disabled={selectedFile}
+                onClick={() => startCall(recordAudio)}
+              >
+                Start Recording
+              </Button>
+            )}
             <Space>
               <Typography.Text type="secondary" style={{ userSelect: "none" }}>
                 Or
@@ -214,6 +250,7 @@ export default function Home() {
             )}
           </Space>
           <div
+            dir={transcriptionText ? "rtl" : "ltr"}
             style={{
               marginTop: 24,
               padding: 24,
@@ -222,10 +259,14 @@ export default function Home() {
               userSelect: "none",
             }}
           >
-            <span style={{ color: colorTextDisabled }}>
-              Start recording or send file for transcription to start appearing
-              here
-            </span>
+            {transcriptionText ? (
+              <span>{transcriptionText}</span>
+            ) : (
+              <span style={{ color: colorTextDisabled }}>
+                Start recording or send file for transcription to start
+                appearing here
+              </span>
+            )}
           </div>
         </Content>
         <Footer style={{ textAlign: "center" }}>intella</Footer>

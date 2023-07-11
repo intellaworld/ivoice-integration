@@ -1,12 +1,12 @@
 import io from "socket.io-client";
 
 export const getSocket = () => {
-  return io("ws://192.168.1.115:8000", {
+  return io("ws://20.171.100.143:7000", {
     path: "/client-side-socket",
     transports: ["websocket"],
     auth: {
       token: "aaaaaaaaaaaasssssddddd",
-      userId: "9c7b64af-3010-455f-83da-4d9fd873de86",
+      userId: "b6e63fac-368a-4206-b7c7-24bf2a0e9f74",
     },
   });
 };
