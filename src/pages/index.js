@@ -256,13 +256,12 @@ export default function Home() {
               padding: 24,
               minHeight: 380,
               background: colorBgContainer,
-              userSelect: "none",
             }}
           >
             {transcriptionText ? (
               <span>{transcriptionText}</span>
             ) : (
-              <span style={{ color: colorTextDisabled }}>
+              <span style={{ color: colorTextDisabled, userSelect: "none" }}>
                 Start recording or send file for transcription to start
                 appearing here
               </span>
