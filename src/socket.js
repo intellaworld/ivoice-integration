@@ -5,8 +5,8 @@ export const getSocket = () => {
     path: "/client-side-socket",
     transports: ["websocket"],
     auth: {
-      token: "aaaaaaaaaaaasssssddddd",
-      userId: "b6e63fac-368a-4206-b7c7-24bf2a0e9f74",
+      token: "3c10cb533fd535a85ddaacafaf4eaee82ed6ce1c3dfec0ecf0663f99e703a3af",
+      userId: "585ffb6b-1e0c-4e36-b95b-098dabf125fb",
     },
   });
 };

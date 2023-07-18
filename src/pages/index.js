@@ -1,12 +1,12 @@
+import React from "react";
 import {
   AudioOutlined,
   CheckSquareFilled,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Layout, Space, Typography, Upload, theme } from "antd";
+import { Button, Input, Layout, Space, Typography, Upload, theme } from "antd";
 import toWav from "audiobuffer-to-wav";
 import Head from "next/head";
-import React from "react";
 import { getSocket } from "../socket";
 import { convertBlobToBase64, splitAudioBuffer } from "../utils/general";
 
@@ -24,9 +24,10 @@ export default function Home() {
   const [isAudioRecording, setIsAudioRecording] = React.useState(false);
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [transcriptionText, setTranscriptionText] = React.useState("");
+  const [socketToDisconnect, setSocketToDisconnect] = React.useState(null);
 
   const fileUploadProps = {
-    onRemove: (file) => {
+    onRemove: () => {
       setSelectedFile(null);
     },
     beforeUpload: (file) => {
@@ -36,65 +37,27 @@ export default function Home() {
     selectedFile,
   };
 
-  const streamFile = async () => {
-    try {
-      const reader = new FileReader();
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContext();
-
-      reader.onload = function (event) {
-        const arrayBuffer = event.target.result;
-        const audioBuffer = audioCtx.decodeAudioData(arrayBuffer);
-
-        Promise.all(
-          splitAudioBuffer(audioBuffer, 2).map(async (b) => {
-            const base64data = await convertBlobToBase64(
-              new Blob([toWav(b)], { type: "audio/wav" })
-            );
-            return JSON.stringify({
-              data: base64data,
-              email: "youssef@gmail.com",
-            });
-          })
-        ).then((chunks) => {
-          let i = 0;
-          setInterval(() => {
-            socket.emit("message", chunks[i]);
-            i++;
-          }, 2000);
-        });
-      };
-
-      reader.readAsArrayBuffer(selectedFile);
-    } catch (error) {
-      console.error("Error", error);
-    }
-  };
-
-  const recordAudio = async () => {
+  async function recordAudio() {
+    let stream;
     try {
       setIsAudioRecording(true);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 44100, channelCount: 1 },
       });
 
       const mediaRecorder = new MediaRecorder(stream);
       const chunks = [];
 
-      //   Handle data available
       mediaRecorder.addEventListener("dataavailable", (event) => {
         if (event.data.size > 0) {
           chunks.push(event.data);
         }
       });
 
-      //   Handle stop recording
       mediaRecorder.addEventListener("stop", async () => {
-        // Convert chunks to a Blob
         const blob = new Blob(chunks);
 
-        // Convert the audio data to WAV format
         const audioData = await blob.arrayBuffer();
         const audioContext = new AudioContext();
         const audioBuffer = await audioContext.decodeAudioData(audioData);
@@ -108,12 +71,9 @@ export default function Home() {
           email: "youssef@gmail.com",
         });
 
-        if (socket) {
-          socket.emit("message", json);
-        }
+        socket?.emit("message", json);
       });
 
-      //   Start recording for 2.5 seconds
       mediaRecorder.start();
 
       const timerId = setTimeout(() => {
@@ -126,19 +86,63 @@ export default function Home() {
       console.error("Error", error);
       setIsAudioRecording(false);
     }
-  };
+  }
 
-  const stopAudioRecord = () => {
+  function stopAudioRecord() {
     if (recordTimerId) {
+      disconnect();
       clearTimeout(recordTimerId);
       setIsAudioRecording(false);
     }
-  };
+  }
 
-  const startCall = (cb) => {
+  async function streamFile() {
+    try {
+      const reader = new FileReader();
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+
+      reader.onload = async (event) => {
+        const arrayBuffer = event.target.result;
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        Promise.all(
+          splitAudioBuffer(audioBuffer, 2).map(async (b) => {
+            const base64data = await convertBlobToBase64(
+              new Blob([toWav(b)], { type: "audio/wav" })
+            );
+            return JSON.stringify({
+              data: base64data,
+              email: "youssef@gmail.com",
+            });
+          })
+        ).then((chunks) => {
+          setIsStreaming(true);
+          let i = 0;
+          const intervalId = setInterval(() => {
+            if (i === chunks.length) {
+              socketToDisconnect?.disconnect();
+              clearInterval(intervalId);
+              setIsStreaming(false);
+              return;
+            }
+            socket.emit("message", chunks[i]);
+            i++;
+          }, 2000);
+        });
+      };
+
+      reader.readAsArrayBuffer(selectedFile);
+    } catch (error) {
+      console.error("Error", error);
+      setIsStreaming(false);
+    }
+  }
+
+  function startCall(cb) {
     if (!socket) {
-      let _socket = getSocket();
-      socket = _socket;
+      socket = getSocket();
+      setSocketToDisconnect(socket);
 
       let messages = "";
 
@@ -146,8 +150,11 @@ export default function Home() {
         console.log("Connected to the backend socket");
       });
 
+      socket.on("connect_error", (e) => {
+        alert(e.message);
+      });
+
       socket.on("message", (message) => {
-        // console.log("message", message);
         messages += message;
         setTranscriptionText(messages);
       });
@@ -161,15 +168,17 @@ export default function Home() {
     }
 
     cb();
-  };
+  }
 
-  const disconnect = () => {
-    const json = JSON.stringify({ email: "youssef@gmail.com" });
-    if (socket) {
-      console.log("disconnect");
-      socket.emit("end-call", json);
-    }
-  };
+  function disconnect() {
+    console.log("DISCONNECT FN CALLED!");
+    socketToDisconnect?.emit(
+      "end-call",
+      JSON.stringify({ email: "youssef@gmail.com" })
+    );
+    setIsStreaming(false);
+    setIsAudioRecording(false);
+  }
 
   return (
     <>
@@ -199,6 +208,10 @@ export default function Home() {
           className="site-layout"
           style={{ padding: "25px 50px", height: "calc(100vh - 132px)" }}
         >
+          <Space style={{ width: "100%", marginBottom: 20 }}>
+            <Input addonBefore="User ID" />
+            <Input addonBefore="Token" />
+          </Space>
           <Space direction="vertical">
             {isAudioRecording ? (
               <Button
