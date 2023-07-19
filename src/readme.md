@@ -44,6 +44,7 @@ const wavBlob = new Blob([wavData], { type: "audio/wav" });
 const base64data = await convertBlobToBase64(wavBlob); // convert file to base64
 const messageBody = JSON.stringify({
   data: base64data,
+  id: "AGENT_ID",
 });
 
 socket.emit("message", messageBody);
@@ -58,7 +59,12 @@ After the call ends, it is important to close the socket connection gracefully. 
 3. Close the socket connection.
 
 ```js
-socket.emit("end-call"); // signal that agent has ended the call
+socket.emit(
+  "end-call",
+  JSON.stringify({
+    id: "AGENT_ID",
+  })
+); // signal that agent has ended the call
 socket.on("end-call", () => {
   // listen for call-ended ack
   socket.disconnect(); // disconnect the socket
