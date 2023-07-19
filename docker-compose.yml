@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+  app:
+    container_name: clctr_realtime
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PORT
+    ports:
+      - ${PORT}:${PORT}
+    env_file: ./.env

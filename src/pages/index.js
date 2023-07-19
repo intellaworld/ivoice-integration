@@ -13,40 +13,33 @@ import { convertBlobToBase64, splitAudioBuffer } from "../utils/general";
 const { Header, Content, Footer } = Layout;
 
 export default function Home() {
-  let socket = null;
+  const [userId, setUserId] = React.useState("");
+  const [userToken, setUserToken] = React.useState("");
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [isAudioRecording, setIsAudioRecording] = React.useState(false);
+  const [isStreaming, setIsStreaming] = React.useState(false);
+  const [transcriptionText, setTranscriptionText] = React.useState("");
+
+  let socket = React.useRef(null);
+  let recordTimerId = React.useRef(null);
+  let recordStream = React.useRef(null);
+  let messages = React.useRef("");
 
   const {
     token: { colorBgContainer, colorTextDisabled, colorTextLightSolid },
   } = theme.useToken();
 
-  const [recordTimerId, setRecordTimerId] = React.useState(null);
-  const [selectedFile, setSelectedFile] = React.useState(null);
-  const [isAudioRecording, setIsAudioRecording] = React.useState(false);
-  const [isStreaming, setIsStreaming] = React.useState(false);
-  const [transcriptionText, setTranscriptionText] = React.useState("");
-  const [socketToDisconnect, setSocketToDisconnect] = React.useState(null);
-
-  const fileUploadProps = {
-    onRemove: () => {
-      setSelectedFile(null);
-    },
-    beforeUpload: (file) => {
-      setSelectedFile(file);
-      return false;
-    },
-    selectedFile,
-  };
-
   async function recordAudio() {
-    let stream;
     try {
       setIsAudioRecording(true);
 
-      stream = await navigator.mediaDevices.getUserMedia({
+      messages.current = "";
+
+      recordStream.current = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 44100, channelCount: 1 },
       });
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(recordStream.current);
       const chunks = [];
 
       mediaRecorder.addEventListener("dataavailable", (event) => {
@@ -71,33 +64,28 @@ export default function Home() {
           email: "youssef@gmail.com",
         });
 
-        socket?.emit("message", json);
+        socket?.current?.emit("message", json);
       });
 
       mediaRecorder.start();
 
-      const timerId = setTimeout(() => {
+      recordTimerId.current = setTimeout(() => {
         mediaRecorder.stop();
         recordAudio();
       }, 2500);
-
-      setRecordTimerId(timerId);
     } catch (error) {
       console.error("Error", error);
       setIsAudioRecording(false);
     }
   }
 
-  function stopAudioRecord() {
-    if (recordTimerId) {
-      disconnect();
-      clearTimeout(recordTimerId);
-      setIsAudioRecording(false);
-    }
-  }
-
   async function streamFile() {
     try {
+      setIsStreaming(true);
+
+      messages.current = "";
+      setTranscriptionText(messages.current);
+
       const reader = new FileReader();
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const audioCtx = new AudioContext();
@@ -107,26 +95,25 @@ export default function Home() {
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
         Promise.all(
-          splitAudioBuffer(audioBuffer, 2).map(async (b) => {
-            const base64data = await convertBlobToBase64(
-              new Blob([toWav(b)], { type: "audio/wav" })
-            );
-            return JSON.stringify({
-              data: base64data,
+          splitAudioBuffer(audioBuffer, 2).map(async (b) =>
+            JSON.stringify({
+              data: await convertBlobToBase64(
+                new Blob([toWav(b)], { type: "audio/wav" })
+              ),
               email: "youssef@gmail.com",
-            });
-          })
+            })
+          )
         ).then((chunks) => {
-          setIsStreaming(true);
           let i = 0;
           const intervalId = setInterval(() => {
             if (i === chunks.length) {
-              socketToDisconnect?.disconnect();
+              endCall();
               clearInterval(intervalId);
               setIsStreaming(false);
+              setSelectedFile(null);
               return;
             }
-            socket.emit("message", chunks[i]);
+            socket?.current?.emit("message", chunks[i]);
             i++;
           }, 2000);
         });
@@ -139,43 +126,52 @@ export default function Home() {
     }
   }
 
+  function stopAudioRecord() {
+    if (recordTimerId.current) {
+      endCall();
+      clearTimeout(recordTimerId.current);
+      setIsAudioRecording(false);
+    }
+    recordStream?.current?.getTracks()?.forEach((track) => track.stop());
+  }
+
   function startCall(cb) {
-    if (!socket) {
-      socket = getSocket();
-      setSocketToDisconnect(socket);
+    if (!socket?.current) {
+      socket.current = getSocket(userId, userToken);
 
-      let messages = "";
-
-      socket.on("connect", () => {
+      socket.current.on("connect", () => {
         console.log("Connected to the backend socket");
       });
 
-      socket.on("connect_error", (e) => {
+      socket.current.on("connect_error", (e) => {
         alert(e.message);
       });
 
-      socket.on("message", (message) => {
-        messages += message;
-        setTranscriptionText(messages);
+      socket.current.on("message", (message) => {
+        messages.current += message;
+        setTranscriptionText(messages.current);
       });
 
-      socket.on("done", () => {
-        console.log("done");
-        socket.disconnect();
+      socket.current.on("done", () => {
+        console.log("Done");
       });
 
-      socket.on("disconnect", disconnect);
+      socket.current.on("disconnect", () => {
+        console.log("Disconnected");
+      });
     }
 
     cb();
   }
 
-  function disconnect() {
-    console.log("DISCONNECT FN CALLED!");
-    socketToDisconnect?.emit(
-      "end-call",
-      JSON.stringify({ email: "youssef@gmail.com" })
-    );
+  function endCall() {
+    console.log("Call ended");
+    const msg = JSON.stringify({ email: "youssef@gmail.com" });
+
+    socket?.current?.emit("end-call", msg);
+    socket?.current?.disconnect();
+    socket.current = null;
+
     setIsStreaming(false);
     setIsAudioRecording(false);
   }
@@ -208,13 +204,27 @@ export default function Home() {
           className="site-layout"
           style={{ padding: "25px 50px", height: "calc(100vh - 132px)" }}
         >
-          <Space style={{ width: "100%", marginBottom: 20 }}>
-            <Input addonBefore="User ID" />
-            <Input addonBefore="Token" />
+          <Space style={{ width: "100%", marginBottom: 10 }}>
+            <Input
+              addonBefore="User ID"
+              onChange={(e) => setUserId(e.target.value)}
+              value={userId}
+            />
+            <Input
+              addonBefore="Token"
+              onChange={(e) => setUserToken(e.target.value)}
+              value={userToken}
+            />
+          </Space>
+          <Space style={{ display: "block", marginBottom: 20 }}>
+            <Typography.Text>
+              Fill User ID and User Token fields to start transcription
+            </Typography.Text>
           </Space>
           <Space direction="vertical">
             {isAudioRecording ? (
               <Button
+                style={{ width: 150 }}
                 danger
                 type="primary"
                 icon={<CheckSquareFilled />}
@@ -225,9 +235,10 @@ export default function Home() {
               </Button>
             ) : (
               <Button
+                style={{ width: 150 }}
                 type="primary"
                 icon={<AudioOutlined />}
-                disabled={selectedFile}
+                disabled={selectedFile || !userId || !userToken}
                 onClick={() => startCall(recordAudio)}
               >
                 Start Recording
@@ -239,7 +250,14 @@ export default function Home() {
               </Typography.Text>
             </Space>
             <Upload
-              {...fileUploadProps}
+              onRemove={() => {
+                setSelectedFile(null);
+              }}
+              beforeUpload={(file) => {
+                setSelectedFile(file);
+                return false;
+              }}
+              selectedFile={selectedFile}
               maxCount={1}
               style={{
                 "& .ant-upload-list.ant-upload-list-text": {
@@ -248,7 +266,13 @@ export default function Home() {
               }}
             >
               <Space>
-                <Button icon={<UploadOutlined />}>Select File</Button>
+                <Button
+                  style={{ width: 150 }}
+                  icon={<UploadOutlined />}
+                  disabled={isAudioRecording || !userId || !userToken}
+                >
+                  Select File
+                </Button>
               </Space>
             </Upload>
             {selectedFile && (
@@ -266,9 +290,11 @@ export default function Home() {
             dir={transcriptionText ? "rtl" : "ltr"}
             style={{
               marginTop: 24,
+              lineHeight: 2.5,
               padding: 24,
-              minHeight: 380,
+              height: 300,
               background: colorBgContainer,
+              overflowY: "scroll",
             }}
           >
             {transcriptionText ? (

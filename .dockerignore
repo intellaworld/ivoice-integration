@@ -1,0 +1,12 @@
+# Files
+
+Dockerfile
+docker-compose.yml
+README.md
+.gitignore
+
+# Directories
+
+node_modules/
+dist/
+.git/
