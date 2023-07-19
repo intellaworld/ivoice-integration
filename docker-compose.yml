@@ -8,5 +8,5 @@ services:
       args:
         - PORT
     ports:
-      - ${PORT}:${PORT}
+      - ${PORT}:3000
     env_file: ./.env
