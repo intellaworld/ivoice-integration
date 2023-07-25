@@ -100,7 +100,7 @@ export default function Home() {
               data: await convertBlobToBase64(
                 new Blob([toWav(b)], { type: "audio/wav" })
               ),
-              email: "youssef@gmail.com",
+              id: "c847ded3-412e-4b1d-b467-9db5d187b49a",
             })
           )
         ).then((chunks) => {
@@ -154,6 +154,7 @@ export default function Home() {
 
       socket.current.on("done", () => {
         console.log("Done");
+        socket.current.disconnect();
       });
 
       socket.current.on("disconnect", () => {
@@ -166,11 +167,11 @@ export default function Home() {
 
   function endCall() {
     console.log("Call ended");
-    const msg = JSON.stringify({ email: "youssef@gmail.com" });
+    const msg = JSON.stringify({ id: "c847ded3-412e-4b1d-b467-9db5d187b49a" });
 
     socket?.current?.emit("end-call", msg);
-    socket?.current?.disconnect();
-    socket.current = null;
+    // socket?.current?.disconnect();
+    // socket.current = null;
 
     setIsStreaming(false);
     setIsAudioRecording(false);
