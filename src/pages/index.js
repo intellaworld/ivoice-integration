@@ -21,6 +21,7 @@ export default function Home() {
   const [transcriptionText, setTranscriptionText] = React.useState("");
 
   let socket = React.useRef(null);
+  let callId = React.useRef("");
   let recordTimerId = React.useRef(null);
   let recordStream = React.useRef(null);
   let messages = React.useRef("");
@@ -33,7 +34,7 @@ export default function Home() {
     try {
       setIsAudioRecording(true);
 
-      messages.current = "";
+      // messages.current = "";
 
       recordStream.current = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 44100, channelCount: 1 },
@@ -59,12 +60,14 @@ export default function Home() {
         const wavBlob = new Blob([wavData], { type: "audio/wav" });
         const base64data = await convertBlobToBase64(wavBlob);
 
-        const msg = JSON.stringify({
-          data: base64data,
-          id: userId,
-        });
+        if (callId?.current) {
+          const msg = JSON.stringify({
+            data: base64data,
+            id: callId?.current,
+          });
 
-        socket?.current?.emit("message", msg);
+          socket?.current?.emit("message", msg);
+        }
       });
 
       mediaRecorder.start();
@@ -95,14 +98,11 @@ export default function Home() {
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
         Promise.all(
-          splitAudioBuffer(audioBuffer, 2).map(async (b) =>
-            JSON.stringify({
-              data: await convertBlobToBase64(
-                new Blob([toWav(b)], { type: "audio/wav" })
-              ),
-              id: userId,
-            })
-          )
+          splitAudioBuffer(audioBuffer, 2).map(async (b) => ({
+            data: await convertBlobToBase64(
+              new Blob([toWav(b)], { type: "audio/wav" })
+            ),
+          }))
         ).then((chunks) => {
           let i = 0;
           const intervalId = setInterval(() => {
@@ -113,8 +113,11 @@ export default function Home() {
               setSelectedFile(null);
               return;
             }
-            socket?.current?.emit("message", chunks[i]);
-            i++;
+            if (callId?.current) {
+              chunks[i].id = callId?.current;
+              socket?.current?.emit("message", JSON.stringify(chunks[i]));
+              i++;
+            }
           }, 2500);
         });
       };
@@ -136,8 +139,14 @@ export default function Home() {
   }
 
   function startCall(cb) {
-    if (!socket?.current) {
+    if (!socket?.current && userId) {
       socket.current = getSocket(userId, userToken);
+
+      socket.current.emit("start-call", JSON.stringify({ id: userId }));
+
+      socket.current.on("call-started", (msg) => {
+        callId.current = JSON.parse(msg)?.id;
+      });
 
       socket.current.on("connect", () => {
         console.log("Connected to the backend socket");
@@ -174,6 +183,10 @@ export default function Home() {
     setIsStreaming(false);
     setIsAudioRecording(false);
   }
+
+  React.useEffect(() => {
+    console.log(callId.current);
+  }, [callId.current]);
 
   return (
     <>
