@@ -4,7 +4,7 @@
 
 Make sure that nodejs and npm installed on your machine v18.16.0 and 9.5.1
 
-to check, open you terminal/cmd/powershell and prompt the follwing commands
+to check, open you terminal/cmd/powershell and prompt the following commands
 
 ```bash
 $ node -v
@@ -53,17 +53,17 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 To start using app
 
-- it is prefered to opend the inspect element in browser by clicking on `f12` key
+- it is preferred to open the dev tools in the browser by clicking on `f12` key
 
 To make a new call:
 
 - press on `Start call` button.
-- accept open `mic` permissions
-- start recoreding your voice (`simulate ongoin call`).
+- grant `mic` permissions
+- start recording your voice (`simulate an ongoing call`).
 
 To end the call
 
 - press on `End call` button many time until you get done message in the console
-- after you see the done message printed in colsole you have to refresh the page
+- after you see the done message printed in console you have to refresh the page
 
 `Now you can check the call you made in the real app`

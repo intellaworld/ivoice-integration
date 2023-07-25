@@ -59,12 +59,12 @@ export default function Home() {
         const wavBlob = new Blob([wavData], { type: "audio/wav" });
         const base64data = await convertBlobToBase64(wavBlob);
 
-        const json = JSON.stringify({
+        const msg = JSON.stringify({
           data: base64data,
-          email: "youssef@gmail.com",
+          id: userId,
         });
 
-        socket?.current?.emit("message", json);
+        socket?.current?.emit("message", msg);
       });
 
       mediaRecorder.start();
@@ -100,7 +100,7 @@ export default function Home() {
               data: await convertBlobToBase64(
                 new Blob([toWav(b)], { type: "audio/wav" })
               ),
-              id: "c847ded3-412e-4b1d-b467-9db5d187b49a",
+              id: userId,
             })
           )
         ).then((chunks) => {
@@ -115,7 +115,7 @@ export default function Home() {
             }
             socket?.current?.emit("message", chunks[i]);
             i++;
-          }, 2000);
+          }, 2500);
         });
       };
 
@@ -167,11 +167,9 @@ export default function Home() {
 
   function endCall() {
     console.log("Call ended");
-    const msg = JSON.stringify({ id: "c847ded3-412e-4b1d-b467-9db5d187b49a" });
+    const msg = JSON.stringify({ id: userId });
 
     socket?.current?.emit("end-call", msg);
-    // socket?.current?.disconnect();
-    // socket.current = null;
 
     setIsStreaming(false);
     setIsAudioRecording(false);

@@ -4,7 +4,7 @@ Thank you for choosing to integrate your software with ours. This guide will pro
 
 ## Step 1: Establishing a connection
 
-To initiate communication with our software, you need to establish a socket connection. Use the follwing steps:
+To initiate communication with our software, you need to establish a socket connection. Use the following steps:
 
 1. Open a socket connection to the specified host and port.
 2. Provide the authentication data to get permitted to establish a connection
@@ -12,7 +12,7 @@ To initiate communication with our software, you need to establish a socket conn
 - provide the `AgentId` associated with your agent that will make the call.
 - provide the `ApiToken` corresponding to the specific project you want the call to be associated with.
 
-`Make sure to include these details in the headers as part of the initail commnumcation to set the call in the desired project under the specific agent.`
+`Make sure to include these details in the headers as part of the initial communication to set the call in the desired project under the specific agent.`
 
 ```js
 import io from "socket.io-client";
@@ -30,14 +30,14 @@ io(uri, {
 
 ## Step 2: Sending recording calls
 
-To send a recording call, please note the follwing considerations:
+To send a recording call, please note the following considerations:
 
-1. We accept a `wav` file readable by browser e.g. `Google Chrome`.
-2. You can also record calls using browser `mic`.
-3. If the file is larger than 2 seconds, it should be divided into chunks of 2-second duration
-4. Each chunk should be sent as separted `base64` encoded blob(file) over the socket connection.
-5. Ensure that the chunks are sent sequentially and in the correct order to maintain the continuity of the audio stream.
-6. Ensure to emit chunks with `message` key.
+1. We accept a `wav` file readable by browser e.g. `Google Chrome`
+2. You can also record calls using browser `mic`
+3. If the file is larger than 2.5 seconds, it should be divided into chunks of 2.5-second duration
+4. Each chunk should be sent as separated `base64` encoded blob(file) over the socket connection
+5. Ensure that the chunks are sent sequentially and in the correct order to maintain the continuity of the audio stream
+6. Ensure to emit chunks with `message` key
 
 ```js
 const wavBlob = new Blob([wavData], { type: "audio/wav" });
