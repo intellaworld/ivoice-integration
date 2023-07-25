@@ -178,7 +178,13 @@ export default function Home() {
     console.log("Call ended");
     const msg = JSON.stringify({ id: userId });
 
-    socket?.current?.emit("end-call", msg);
+    if (callId?.current) {
+      const msg = JSON.stringify({
+        id: callId?.current,
+      });
+
+      socket?.current?.emit("end-call", msg);
+    }
 
     setIsStreaming(false);
     setIsAudioRecording(false);
