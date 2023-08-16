@@ -8,7 +8,7 @@ export const getSocket = (
   uri = "ws://20.171.100.143:7000",
   path = "/client-side-socket"
 ) =>
-  io(SOCKET_URI ? `ws://${SOCKET_URI}` : uri, {
+  io(SOCKET_URI ? `${SOCKET_URI}` : uri, {
     path,
     transports: ["websocket"],
     auth: { userId, token },
