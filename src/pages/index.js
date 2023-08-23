@@ -27,7 +27,12 @@ export default function Home() {
   let messages = React.useRef("");
 
   const {
-    token: { colorBgContainer, colorTextDisabled, colorTextLightSolid },
+    token: {
+      // colorBgContainer,
+      colorTextDisabled,
+      colorTextLightSolid,
+      colorWhite,
+    },
   } = theme.useToken();
 
   async function recordAudio() {
@@ -199,7 +204,7 @@ export default function Home() {
       <Head>
         <title>Realtime Transcription</title>
       </Head>
-      <Layout>
+      <Layout style={{ minHeight: "100vh" }}>
         <Header
           style={{
             position: "sticky",
@@ -220,7 +225,11 @@ export default function Home() {
         </Header>
         <Content
           className="site-layout"
-          style={{ padding: "25px 50px", height: "calc(100vh - 132px)" }}
+          style={{
+            padding: "25px 50px",
+            // height: "calc(100vh - 132px)"
+            // height: "100%",
+          }}
         >
           <Space style={{ width: "100%", marginBottom: 10 }}>
             <Input
@@ -310,22 +319,22 @@ export default function Home() {
               marginTop: 24,
               lineHeight: 2.5,
               padding: 24,
-              height: 300,
-              background: colorBgContainer,
+              // height: 300,
+              background: "black",
               overflowY: "scroll",
             }}
           >
             {transcriptionText ? (
-              <span>{transcriptionText}</span>
+              <span style={{ color: colorWhite }}>{transcriptionText}</span>
             ) : (
-              <span style={{ color: colorTextDisabled, userSelect: "none" }}>
+              <span style={{ color: colorWhite, userSelect: "none" }}>
                 Start recording or send file for transcription to start
                 appearing here
               </span>
             )}
           </div>
         </Content>
-        <Footer style={{ textAlign: "center" }}>intella</Footer>
+        {/* <Footer style={{ textAlign: "center" }}>intella</Footer> */}
       </Layout>
     </>
   );
