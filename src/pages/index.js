@@ -162,7 +162,7 @@ export default function Home() {
       });
 
       socket.current.on("message", (message) => {
-        messages.current += message;
+        messages.current += message === "" ? "😀" : message;
         setTranscriptionText(messages.current);
       });
 
