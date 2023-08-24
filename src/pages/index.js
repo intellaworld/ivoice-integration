@@ -118,7 +118,7 @@ export default function Home() {
               socket?.current?.emit("message", JSON.stringify(chunks[i]));
               i++;
             }
-          }, 2500);
+          }, 2000);
         });
       };
 
@@ -163,7 +163,10 @@ export default function Home() {
 
       socket.current.on("done", () => {
         console.log("Done");
-        socket.current.disconnect();
+
+        setTimeout(() => {
+          socket.current.disconnect();
+        }, 10000 * 60);
       });
 
       socket.current.on("disconnect", () => {
