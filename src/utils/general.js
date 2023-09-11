@@ -1,6 +1,6 @@
 export const splitAudioBuffer = (audioBuffer, segmentDuration) => {
   const audioContext = new AudioContext();
-  const sampleRate = 44100;
+  const sampleRate = audioBuffer.sampleRate;
   const numChannels = 1;
   const segmentSize = segmentDuration * sampleRate;
   const numSegments = Math.ceil(audioBuffer.duration / segmentDuration);

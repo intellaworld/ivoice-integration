@@ -10,7 +10,7 @@ import Head from "next/head";
 import { getSocket } from "../socket";
 import { convertBlobToBase64, splitAudioBuffer } from "../utils/general";
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 
 export default function Home() {
   const [userId, setUserId] = React.useState("");
@@ -27,12 +27,7 @@ export default function Home() {
   let messages = React.useRef("");
 
   const {
-    token: {
-      // colorBgContainer,
-      colorTextDisabled,
-      colorTextLightSolid,
-      colorWhite,
-    },
+    token: { colorTextLightSolid, colorWhite },
   } = theme.useToken();
 
   async function recordAudio() {
