@@ -1,27 +1,22 @@
 import React from "react";
-import {
-  AudioOutlined,
-  CheckSquareFilled,
-  UploadOutlined,
-} from "@ant-design/icons";
-import { Button, Input, Layout, Space, Typography, Upload, theme } from "antd";
+import { AudioOutlined, CheckSquareFilled } from "@ant-design/icons";
+import { Button, Input, Layout, Space, Typography, theme } from "antd";
 import toWav from "audiobuffer-to-wav";
 import Head from "next/head";
-import { getSocket } from "../socket";
-import { convertBlobToBase64, splitAudioBuffer } from "../utils/general";
+import { getSocket, convertBlobToBase64 } from "../socket";
 
 const { Header, Content } = Layout;
 
 export default function Home() {
-  const [userId, setUserId] = React.useState("");
-  const [userToken, setUserToken] = React.useState("");
-  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [apiToken, setApiToken] = React.useState("MraWy8nWYUaYBRmmetAbVA==");
+  const [accountId, setAccountId] = React.useState(
+    "4ed2a455-3618-4beb-8af2-25895780a8ac"
+  );
   const [isAudioRecording, setIsAudioRecording] = React.useState(false);
-  const [isStreaming, setIsStreaming] = React.useState(false);
   const [transcriptionText, setTranscriptionText] = React.useState("");
 
   let socket = React.useRef(null);
-  let callId = React.useRef("");
+  let recordingId = React.useRef("");
   let recordTimerId = React.useRef(null);
   let recordStream = React.useRef(null);
   let messages = React.useRef("");
@@ -60,13 +55,13 @@ export default function Home() {
         const wavBlob = new Blob([wavData], { type: "audio/wav" });
         const base64data = await convertBlobToBase64(wavBlob);
 
-        if (callId?.current) {
+        if (recordingId?.current) {
           const msg = JSON.stringify({
+            recordingId: recordingId?.current,
             data: base64data,
-            id: callId?.current,
           });
 
-          socket?.current?.emit("message", msg);
+          socket?.current?.emit("recording-chunk", msg);
         }
       });
 
@@ -75,57 +70,10 @@ export default function Home() {
       recordTimerId.current = setTimeout(() => {
         mediaRecorder.stop();
         recordAudio();
-      }, 2500);
+      }, 3000);
     } catch (error) {
       console.error("Error", error);
       setIsAudioRecording(false);
-    }
-  }
-
-  async function streamFile() {
-    try {
-      setIsStreaming(true);
-
-      messages.current = "";
-      setTranscriptionText(messages.current);
-
-      const reader = new FileReader();
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContext();
-
-      reader.onload = async (event) => {
-        const arrayBuffer = event.target.result;
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-        Promise.all(
-          splitAudioBuffer(audioBuffer, 2).map(async (b) => ({
-            data: await convertBlobToBase64(
-              new Blob([toWav(b)], { type: "audio/wav" })
-            ),
-          }))
-        ).then((chunks) => {
-          let i = 0;
-          const intervalId = setInterval(() => {
-            if (i === chunks.length) {
-              endCall();
-              clearInterval(intervalId);
-              setIsStreaming(false);
-              setSelectedFile(null);
-              return;
-            }
-            if (callId?.current) {
-              chunks[i].id = callId?.current;
-              socket?.current?.emit("message", JSON.stringify(chunks[i]));
-              i++;
-            }
-          }, 2000);
-        });
-      };
-
-      reader.readAsArrayBuffer(selectedFile);
-    } catch (error) {
-      console.error("Error", error);
-      setIsStreaming(false);
     }
   }
 
@@ -138,14 +86,12 @@ export default function Home() {
     recordStream?.current?.getTracks()?.forEach((track) => track.stop());
   }
 
-  function startCall(cb) {
-    if (!socket?.current && userId) {
-      socket.current = getSocket(userId, userToken);
+  function startRecording(cb) {
+    if (!socket?.current && apiToken) {
+      socket.current = getSocket(accountId, apiToken);
 
-      socket.current.emit("start-call", JSON.stringify({ id: userId }));
-
-      socket.current.on("call-started", (msg) => {
-        callId.current = JSON.parse(msg)?.id;
+      socket.current.on("recording-started", (msg) => {
+        recordingId.current = JSON.parse(msg)?.recordingId;
       });
 
       socket.current.on("connect", () => {
@@ -153,20 +99,24 @@ export default function Home() {
       });
 
       socket.current.on("connect_error", (e) => {
-        alert(e.message);
+        alert(JSON.stringify(e));
       });
 
-      socket.current.on("message", (message) => {
+      socket.current.on("error", (e) => {
+        alert(e);
+      });
+
+      socket.current.on("chunk-result", (message) => {
         messages.current += message === "" ? "😀" : message;
         setTranscriptionText(messages.current);
       });
 
-      socket.current.on("done", () => {
-        console.log("Done");
+      socket.current.on("recording-stopped", () => {
+        console.log("recording-stopped");
 
-        setTimeout(() => {
-          socket.current.disconnect();
-        }, 10000 * 60);
+        // setTimeout(() => {
+        //   socket.current.disconnect();
+        // }, 10000 * 60);
       });
 
       socket.current.on("disconnect", () => {
@@ -174,28 +124,31 @@ export default function Home() {
       });
     }
 
+    socket.current.emit(
+      "start-recording",
+      JSON.stringify({ api_token: apiToken, accountId: accountId })
+    );
     cb();
   }
 
   function endCall() {
-    console.log("Call ended");
-    const msg = JSON.stringify({ id: userId });
-
-    if (callId?.current) {
+    if (recordingId?.current) {
       const msg = JSON.stringify({
-        id: callId?.current,
+        api_token: apiToken,
+        accountId: accountId,
+        recordingId: recordingId?.current,
       });
 
-      socket?.current?.emit("end-call", msg);
+      socket?.current?.emit("stop-recording", msg);
+      recordingId.current = "";
     }
 
-    setIsStreaming(false);
     setIsAudioRecording(false);
   }
 
   React.useEffect(() => {
-    console.log(callId.current);
-  }, [callId.current]);
+    console.log(recordingId.current);
+  }, [recordingId.current]);
 
   return (
     <>
@@ -231,14 +184,14 @@ export default function Home() {
         >
           <Space style={{ width: "100%", marginBottom: 10 }}>
             <Input
-              addonBefore="User ID"
-              onChange={(e) => setUserId(e.target.value)}
-              value={userId}
+              addonBefore="Account Id"
+              onChange={(e) => setAccountId(e.target.value)}
+              value={accountId}
             />
             <Input
-              addonBefore="Token"
-              onChange={(e) => setUserToken(e.target.value)}
-              value={userToken}
+              addonBefore="Api Token"
+              onChange={(e) => setApiToken(e.target.value)}
+              value={apiToken}
             />
           </Space>
           <Space style={{ display: "block", marginBottom: 20 }}>
@@ -253,7 +206,6 @@ export default function Home() {
                 danger
                 type="primary"
                 icon={<CheckSquareFilled />}
-                disabled={selectedFile}
                 onClick={stopAudioRecord}
               >
                 Stop Recording
@@ -263,51 +215,10 @@ export default function Home() {
                 style={{ width: 150 }}
                 type="primary"
                 icon={<AudioOutlined />}
-                disabled={selectedFile || !userId || !userToken}
-                onClick={() => startCall(recordAudio)}
+                disabled={!apiToken || !accountId}
+                onClick={() => startRecording(recordAudio)}
               >
                 Start Recording
-              </Button>
-            )}
-            <Space>
-              <Typography.Text type="secondary" style={{ userSelect: "none" }}>
-                Or
-              </Typography.Text>
-            </Space>
-            <Upload
-              onRemove={() => {
-                setSelectedFile(null);
-              }}
-              beforeUpload={(file) => {
-                setSelectedFile(file);
-                return false;
-              }}
-              selectedFile={selectedFile}
-              maxCount={1}
-              style={{
-                "& .ant-upload-list.ant-upload-list-text": {
-                  position: "absolute",
-                },
-              }}
-            >
-              <Space>
-                <Button
-                  style={{ width: 150 }}
-                  icon={<UploadOutlined />}
-                  disabled={isAudioRecording || !userId || !userToken}
-                >
-                  Select File
-                </Button>
-              </Space>
-            </Upload>
-            {selectedFile && (
-              <Button
-                type="primary"
-                disabled={!selectedFile}
-                loading={isStreaming}
-                onClick={() => startCall(streamFile)}
-              >
-                {isStreaming ? "Sending" : "Send"}
               </Button>
             )}
           </Space>
