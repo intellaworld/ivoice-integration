@@ -1,69 +1,76 @@
-## To setup environment and run the app on your machine
+# Welcome to ivoice Integration Demo
 
-## Setup the environment
-
-Make sure that nodejs and npm installed on your machine v18.16.0 and 9.5.1
-
-to check, open you terminal/cmd/powershell and prompt the following commands
-
-```bash
-$ node -v
-v18.16.0
-```
-
-,and
-
-```bash
-$ npm -v
-9.5.1
-```
-
-Make sure that git installed
-
-```bash
-$ git --version
-git version 2.35.1.windows.2
-```
-
-Clone the project from repository
-
-```bash
-cd </path/you/want/to/clone/project>
-$ git clone "https://bitbucket/repository"
-cd <project_name>
-```
+Thank you for considering integrating with ivoice! We greatly appreciate your interest and support. This repository serves as a demonstration to guide you through the integration process.
 
 ## Getting Started
 
-Install all dependencies:
+To get started with integrating your system with ivoice, follow these steps:
+
+1. **Clone the Repository**:
 
 ```bash
-$ npm install
+git clone https://github.com/moeldeeb1998/ivoice-integration.git
 ```
 
-Run the app in development mode:
+2. **Install Dependencies**:
 
 ```bash
-$ npm run dev
+cd ivoice-integration
+npm install # or any other relevant command for your stack
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Configuration**:
 
-## Learn More
+- copy `.env.example` to `.env` and update the values with your own
 
-To start using app
+```bash
+cp .env.example .env
+# set the value of `NEXT_PUBLIC_SOCKET_URI` to `wss://ws.intella-voice.com`
+```
 
-- it is preferred to open the dev tools in the browser by clicking on `f12` key
+4. **Run the Demo**:
 
-To make a new call:
+- Build the application
+- Run the application
 
-- press on `Start call` button.
-- grant `mic` permissions
-- start recording your voice (`simulate an ongoing call`).
+```bash
+npm run build
+npm run start
+```
 
-To end the call
+5. **Try the Demo**:
 
-- press on `End call` button many time until you get done message in the console
-- after you see the done message printed in console you have to refresh the page
+- Visit http://localhost:3000
+- Set `Account Id` obtained from the developer portal
+- Set `Api Token` obtained from your profile
 
-`Now you can check the call you made in the real app`
+  ![Data](image.png)
+
+- Click on `Start Recording` button and start speaking in Arabic
+  ![Button](button-1.png)
+
+- Allow microphone access
+
+- Enjoy transcription!
+
+## Integration Guide
+
+For a comprehensive integration guide, please refer to our official documentation [here](https://link-to-your-documentation).
+
+### Explore the follwing files
+
+to understand integration with ivoice
+ws handlers are implemented inside `src/pages/index.js`
+ws helper are impelemented inside `src/socket.js`
+
+## Issues and Support
+
+If you encounter any issues during the integration process or have any questions, please don't hesitate to reach out to our support team at [support@example.com](mailto:support@example.com).
+
+## Contributing
+
+We welcome contributions from the community! If you have any suggestions for improvement, feel free to submit a pull request.
+
+## License
+
+GPL License

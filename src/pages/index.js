@@ -107,16 +107,12 @@ export default function Home() {
       });
 
       socket.current.on("chunk-result", (message) => {
-        messages.current += message === "" ? "😀" : message;
+        messages.current += message === "" ? "😀" : JSON.parse(message).data;
         setTranscriptionText(messages.current);
       });
 
       socket.current.on("recording-stopped", () => {
         console.log("recording-stopped");
-
-        // setTimeout(() => {
-        //   socket.current.disconnect();
-        // }, 10000 * 60);
       });
 
       socket.current.on("disconnect", () => {
