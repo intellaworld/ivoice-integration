@@ -8,10 +8,8 @@ import { getSocket, convertBlobToBase64 } from "../socket";
 const { Header, Content } = Layout;
 
 export default function Home() {
-  const [apiToken, setApiToken] = React.useState("MraWy8nWYUaYBRmmetAbVA==");
-  const [accountId, setAccountId] = React.useState(
-    "4ed2a455-3618-4beb-8af2-25895780a8ac"
-  );
+  const [apiToken, setApiToken] = React.useState("");
+  const [accountId, setAccountId] = React.useState("");
   const [isAudioRecording, setIsAudioRecording] = React.useState(false);
   const [transcriptionText, setTranscriptionText] = React.useState("");
 
@@ -28,8 +26,6 @@ export default function Home() {
   async function recordAudio() {
     try {
       setIsAudioRecording(true);
-
-      // messages.current = "";
 
       recordStream.current = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 44100, channelCount: 1 },
@@ -174,8 +170,6 @@ export default function Home() {
           className="site-layout"
           style={{
             padding: "25px 50px",
-            // height: "calc(100vh - 132px)"
-            // height: "100%",
           }}
         >
           <Space style={{ width: "100%", marginBottom: 10 }}>
@@ -224,7 +218,6 @@ export default function Home() {
               marginTop: 24,
               lineHeight: 2.5,
               padding: 24,
-              // height: 300,
               background: "black",
               overflowY: "scroll",
             }}
@@ -239,7 +232,6 @@ export default function Home() {
             )}
           </div>
         </Content>
-        {/* <Footer style={{ textAlign: "center" }}>intella</Footer> */}
       </Layout>
     </>
   );

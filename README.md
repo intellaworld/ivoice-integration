@@ -9,7 +9,7 @@ To get started with integrating your system with ivoice, follow these steps:
 1. **Clone the Repository**:
 
 ```bash
-git clone https://github.com/moeldeeb1998/ivoice-integration.git
+git clone https://github.com/intellaworld/ivoice-integration-example.git
 ```
 
 2. **Install Dependencies**:
@@ -47,7 +47,7 @@ npm run start
   ![Data](image.png)
 
 - Click on `Start Recording` button and start speaking in Arabic
-  ![Button](button-1.png)
+  ![Button](button.png)
 
 - Allow microphone access
 
@@ -55,7 +55,7 @@ npm run start
 
 ## Integration Guide
 
-For a comprehensive integration guide, please refer to our official documentation [here](https://link-to-your-documentation).
+For a comprehensive integration guide, please refer to our official documentation [here](https://drive.google.com/file/d/1MYFoXP4ym2_ZZba1Kll30Vmz0dverBlT/view?usp=sharing).
 
 ### Explore the follwing files
 
@@ -63,9 +63,9 @@ to understand integration with ivoice
 ws handlers are implemented inside `src/pages/index.js`
 ws helper are impelemented inside `src/socket.js`
 
-## Issues and Support
+<!-- ## Issues and Support
 
-If you encounter any issues during the integration process or have any questions, please don't hesitate to reach out to our support team at [support@example.com](mailto:support@example.com).
+If you encounter any issues during the integration process or have any questions, please don't hesitate to reach out to our support team at [support@example.com](mailto:support@example.com). -->
 
 ## Contributing
 
