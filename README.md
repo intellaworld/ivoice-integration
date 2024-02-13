@@ -59,9 +59,10 @@ For a comprehensive integration guide, please refer to our official documentatio
 
 ### Explore the follwing files
 
-to understand integration with ivoice
-ws handlers are implemented inside `src/pages/index.js`
-ws helper are impelemented inside `src/socket.js`
+To understand integration with ivoice
+
+- ws handlers are implemented inside `src/pages/index.js`
+- ws helper are impelemented inside `src/socket.js`
 
 <!-- ## Issues and Support
 
