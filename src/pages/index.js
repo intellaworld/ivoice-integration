@@ -103,7 +103,8 @@ export default function Home() {
       });
 
       socket.current.on("chunk-result", (message) => {
-        messages.current += message === "" ? "😀" : JSON.parse(message).data;
+        // messages.current += message === "" ? "😀" : JSON.parse(message).data;
+        messages.current += message === "" ? "😀" : message;
         setTranscriptionText(messages.current);
       });
 
