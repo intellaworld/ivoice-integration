@@ -55,7 +55,7 @@ npm run start
 
 ## Integration Guide
 
-For a comprehensive integration guide, please refer to our official documentation [here](https://drive.google.com/file/d/1MYFoXP4ym2_ZZba1Kll30Vmz0dverBlT/view?usp=sharing).
+For a comprehensive integration guide, please refer to our official documentation [here](https://drive.google.com/file/d/1iYykE37SuQmmWGhDjVhNI-k25tKQ8BfF/view?usp=sharing).
 
 ### Explore the follwing files
 
